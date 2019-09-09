@@ -22,11 +22,16 @@
         - php-gd
         - libgd-dev
   
+    - name: Create Group nagcmd
+      group: 
+        name: nagcmd
+        state: present
+
     - name: Add user nagios 
       user:
         name: nagios
         shell: /bin/bash
-        groups: www-data
+        groups: nagcmd,www-data
         create_home: yes
         append: yes
 
