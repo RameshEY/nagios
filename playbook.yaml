@@ -1,0 +1,97 @@
+---
+- name: Install Nagios
+  hosts: test1
+  gather_facts: true
+  tasks:
+    - name: Run apt-get update 
+      apt:
+        update_cache: yes
+    - name: Install dependencies
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - wget
+        - build-essential
+        - unzip
+        - openssl
+        - libssl-dev
+        - apache2
+        - php
+        - libapache2-mod-php
+        - php-gd
+        - libgd-dev
+  
+    - name: Add user nagios 
+      user:
+        name: nagios
+        shell: /bin/bash
+        groups: www-data
+        create_home: yes
+        append: yes
+
+    - name: Get Nagios binaries 
+      get_url:
+        url: https://github.com/NagiosEnterprises/nagioscore/archive/nagios-4.4.3.zip
+        dest: /opt/nagios-4.4.3.zip
+        mode: '0755'
+
+    - name: Untar Nagios tarball
+      unarchive:
+        src: /opt/nagios-4.4.3.zip
+        dest: /opt/
+
+   
+    - name: Run make for nagios binaries
+      command: "{{ item }} chdir=/opt/nagioscore-nagios-4.4.3"
+      with_items:
+        - ./configure --with-command-group=nagios
+        - make all
+        - make install
+        - make install-init
+        - make install-daemoninit
+        - make install-config
+        - make install-commandmode
+        - make install-exfoliation
+        - cp -R contrib/eventhandlers/ /usr/local/nagios/libexec/
+        - chown -R nagios:nagios /usr/local/nagios/libexec/eventhandlers
+
+
+    - name: Add configuration to apache2
+      copy: 
+        src: ./nagios.conf
+        dest: /etc/apache2/conf-available/nagios.conf
+        mode: '0644'
+
+    - name: Set nagios Authentication
+      command: "{{ item }}"
+      with_items:
+        - htpasswd -b -c /usr/local/nagios/etc/htpasswd.users nagiosadmin nagiosadmin
+        - a2enconf nagios
+        - a2enmod cgi rewrite
+        - service apache2 restart
+
+    - name: Install Nagios Plugins 
+      get_url:
+        url: http://www.nagios-plugins.org/download/nagios-plugins-2.2.1.tar.gz
+        dest: /opt/nagios-plugins-2.2.1.tar.gz
+        mode: '0755'
+
+    - name: Unarchive nagios plugins
+      unarchive:
+        src: /opt/nagios-plugins-2.2.1.tar.gz
+        dest: /opt
+
+    - name: Setup nagios plugins
+      command: "{{ item }} chdir=/opt/nagios-plugins-2.2.1"
+      with_items:
+        - ./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl
+        - make
+        - make install
+        - /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+    - name: Start Nagios Service 
+      service:
+        name: nagios
+        enabled: yes
+        state: started
