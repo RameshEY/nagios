@@ -1,6 +1,6 @@
 ---
 - name: Install Nagios
-  hosts: test1
+  hosts: nagiosmaster
   gather_facts: true
   tasks:
     - name: Run apt-get update 
@@ -45,7 +45,7 @@
     - name: Run make for nagios binaries
       command: "{{ item }} chdir=/opt/nagioscore-nagios-4.4.3"
       with_items:
-        - ./configure --with-command-group=nagios
+        - ./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl
         - make all
         - make install
         - make install-init

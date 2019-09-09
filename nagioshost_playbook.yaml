@@ -1,0 +1,21 @@
+---
+- name: Install Nagios
+  hosts: slave
+  gather_facts: true
+  tasks:
+    - name: Run apt-get update 
+      apt:
+        update_cache: yes
+    - name: Install dependencies
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - wget
+        - build-essential
+        - unzip
+        - openssl
+        - libssl-dev
+        - nagios-nrpe-server
+        - nagios-plugins
+
