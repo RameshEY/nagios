@@ -252,8 +252,93 @@ service nagios restart
 ```
 
 
+***
+
+### Create a Custom script to monitor process
 
 
+1. Move the custom script to plugin location 
+
+```
+cp check_kubelet.sh /usr/local/nagios/libexec/check_kubelet.sh
+
+chmod +x /usr/local/nagios/libexec/check_kubelet.sh
+
+```
+
+2. Create a new command that will be recognized by nagios 
+
+```
+vi /usr/local/nagios/etc/objects/commands.cfg
+```
+
+3. Add the below definition for the new command check_kubelet
+
+```
+define command{
+	command_name check_kubelet
+	command_line $USER1$/check_kubelet.sh
+}
+
+```
+
+4. Add the below block to execute the command on nagios server 
+
+```
+vi /usr/local/nagios/etc/objects/localhost.cfg
+```
+
+Add the below lines - 
+
+```
+define service{
+	use local-service
+	host_name localhost
+	service_description Nagios kubelet monitoring
+	check_command check_kubelet
+}
+
+```
+
+5. Verify configuration
+
+```
+sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+
+```
+
+6. Add the configuration to remote host - 
+
+```
+vi /usr/local/nagios/etc/servers/ubuntu_host.cfg
+
+# Add the below lines 
+
+define service{
+      host_name                       ubuntu_host
+      service_description             kubelet_check
+      check_command                   check_kubelet
+      max_check_attempts              2
+      check_interval                  2
+      retry_interval                  2
+      check_period                    24x7
+      check_freshness                 1
+      contact_groups                  admins
+      notification_interval           2
+      notification_period             24x7
+      notifications_enabled           1
+      register                        1
+
+}
+
+
+```
+
+7. Restart nagios service 
+
+```
+systemctl restart nagios.service 
+```
 
 
 
